@@ -2,6 +2,7 @@ package api
 
 import (
 	"rpa-middleware/internal/interfaces"
+	"rpa-middleware/internal/repository"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -11,9 +12,9 @@ import (
 func SetupRouter(queueManager interfaces.QueueManager, rpaClient interfaces.RPAClient, logger *logrus.Logger) *gin.Engine {
 	// 设置 Gin 模式
 	gin.SetMode(gin.ReleaseMode)
-	
+
 	router := gin.New()
-	
+
 	// 中间件
 	router.Use(gin.Recovery())
 	router.Use(LoggerMiddleware(logger))
@@ -25,14 +26,63 @@ func SetupRouter(queueManager interfaces.QueueManager, rpaClient interfaces.RPAC
 	// API 路由组
 	v1 := router.Group("/api/v1")
 	{
-		// 请求管理
-		v1.POST("/requests", handler.SubmitRequest)
-		v1.GET("/requests/:id", handler.GetRequestStatus)
-		v1.GET("/requests", handler.ListRequests)
-		
+		// 采购请求队列管理
+		v1.POST("/purchase-requests/queue", handler.SubmitPurchaseRequest)
+		v1.POST("/purchase-requests/queue/clear-all", handler.ClearQueue)
+		v1.GET("/purchase-requests/queue", handler.ListPurchaseRequests)
+		v1.GET("/purchase-requests/queue/:id", handler.GetPurchaseRequestStatus)
+
 		// 系统状态
 		v1.GET("/status", handler.GetQueueStats)
 		v1.GET("/health", handler.HealthCheck)
+	}
+
+	return router
+}
+
+// SetupRouterWithPurchaseRequests 设置包含采购请求的路由
+func SetupRouterWithPurchaseRequests(
+	queueManager interfaces.QueueManager,
+	rpaClient interfaces.RPAClient,
+	purchaseRepo *repository.PurchaseRequestRepository,
+	logger *logrus.Logger,
+) *gin.Engine {
+	// 设置 Gin 模式
+	gin.SetMode(gin.ReleaseMode)
+
+	router := gin.New()
+
+	// 中间件
+	router.Use(gin.Recovery())
+	router.Use(LoggerMiddleware(logger))
+	router.Use(CORSMiddleware())
+
+	// 创建处理器
+	handler := NewHandler(queueManager, rpaClient, logger)
+	purchaseHandler := NewPurchaseRequestHandler(purchaseRepo, logger)
+
+	// API 路由组
+	v1 := router.Group("/api/v1")
+	{
+		// 采购请求队列管理
+		v1.POST("/purchase-requests/queue", handler.SubmitPurchaseRequest)
+		v1.POST("/purchase-requests/queue/clear-all", handler.ClearQueue)
+		v1.GET("/purchase-requests/queue", handler.ListPurchaseRequests)
+		v1.GET("/purchase-requests/queue/:id", handler.GetPurchaseRequestStatus)
+
+		// 系统状态
+		v1.GET("/status", handler.GetQueueStats)
+		v1.GET("/health", handler.HealthCheck)
+
+		// 采购请求数据库管理
+		purchase := v1.Group("/purchase-requests")
+		{
+			purchase.POST("", purchaseHandler.CreatePurchaseRequest)
+			purchase.GET("/:request_id", purchaseHandler.GetPurchaseRequest)
+			purchase.GET("", purchaseHandler.ListPurchaseRequests)
+			purchase.PUT("/:request_id", purchaseHandler.UpdatePurchaseRequest)
+			purchase.DELETE("/:request_id", purchaseHandler.DeletePurchaseRequest)
+		}
 	}
 
 	return router

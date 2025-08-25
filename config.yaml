@@ -1,17 +1,38 @@
 server:
-  port: 8080
+  port: 8082
   read_timeout: 30s
   write_timeout: 30s
 
 rpa:
-  base_url: "http://localhost:8081"
+  base_url: "http://localhost:8084"
   timeout: 60s
-  check_interval: 5s
+  check_interval: 60s
 
 queue:
+  type: "memory"  # 队列类型: memory 或 redis
   check_interval: 5s
   max_retries: 3
   retry_interval: 10s
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
+
+mysql:
+  host: "localhost"
+  port: 3306
+  username: "root"
+  password: "Test123ls"
+  database: "middleware"
+  charset: "utf8mb4"
+  parse_time: true
+  loc: "Local"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300s
 
 logger:
   level: "info"

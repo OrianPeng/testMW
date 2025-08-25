@@ -1,8 +1,9 @@
-.PHONY: build run test clean deps help
+.PHONY: build run test clean deps help redis-test redis-build test-quick test-full
 
 # 构建配置
 BINARY_NAME=rpa-middleware
 MAIN_PATH=cmd/server/main.go
+REDIS_TEST_PATH=cmd/redis_test/main.go
 BUILD_DIR=build
 
 # Go 配置
@@ -26,10 +27,35 @@ build: deps ## 构建项目
 	$(GOBUILD) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 	@echo "构建完成: $(BUILD_DIR)/$(BINARY_NAME)"
 
+redis-build: deps ## 构建 Redis 测试工具
+	@mkdir -p $(BUILD_DIR)
+	$(GOBUILD) -o $(BUILD_DIR)/redis-test $(REDIS_TEST_PATH)
+	@echo "构建完成: $(BUILD_DIR)/redis-test"
+
+test-build: deps ## 构建测试工具
+	@mkdir -p $(BUILD_DIR)
+	$(GOBUILD) -o $(BUILD_DIR)/test-comprehensive test_comprehensive.go
+	@echo "构建完成: $(BUILD_DIR)/test-comprehensive"
+
 run: ## 运行项目
 	$(GOCMD) run $(MAIN_PATH)
 
-test: ## 运行测试
+run-redis: ## 使用 Redis 队列运行项目
+	QUEUE_TYPE=redis $(GOCMD) run $(MAIN_PATH)
+
+redis-test: redis-build ## 测试 Redis 连接
+	@echo "测试 Redis 连接..."
+	@$(BUILD_DIR)/redis-test
+
+test-quick: test-build ## 快速测试（基本功能）
+	@echo "运行快速测试..."
+	@$(BUILD_DIR)/test-comprehensive
+
+test-full: test-build ## 全面测试（所有功能）
+	@echo "运行全面测试..."
+	@$(BUILD_DIR)/test-comprehensive
+
+test: ## 运行单元测试
 	$(GOTEST) -v -race ./...
 
 test-coverage: ## 运行测试并生成覆盖率报告
@@ -51,7 +77,10 @@ docker-build: ## 构建 Docker 镜像
 	docker build -t $(BINARY_NAME):latest .
 
 docker-run: ## 运行 Docker 容器
-	docker run -p 8080:8080 --env-file .env $(BINARY_NAME):latest
+	docker run -p 8081:8081 --env-file .env $(BINARY_NAME):latest
+
+docker-run-redis: ## 运行带 Redis 的 Docker 容器
+	docker run -p 8081:8081 --env-file .env -e QUEUE_TYPE=redis $(BINARY_NAME):latest
 
 install: build ## 安装到系统
 	sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/
@@ -62,4 +91,12 @@ dev: ## 开发模式运行（带自动重载）
 	else \
 		echo "请安装 air: go install github.com/cosmtrek/air@latest"; \
 		$(MAKE) run; \
+	fi
+
+dev-redis: ## 使用 Redis 的开发模式运行
+	@if command -v air > /dev/null; then \
+		QUEUE_TYPE=redis air; \
+	else \
+		echo "请安装 air: go install github.com/cosmtrek/air@latest"; \
+		$(MAKE) run-redis; \
 	fi

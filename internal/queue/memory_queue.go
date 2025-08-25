@@ -2,119 +2,156 @@ package queue
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"rpa-middleware/internal/interfaces"
 	"rpa-middleware/internal/models"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
-// MemoryQueueManager 基于内存的队列管理器
+// MemoryQueueManager 内存队列管理器
 type MemoryQueueManager struct {
-	mu       sync.RWMutex
-	requests map[string]*models.QueuedRequest
-	queue    []*models.QueuedRequest
+	requests map[string]*models.QueuedPurchaseRequest
+	mutex    sync.RWMutex
+	logger   *logrus.Logger
 }
 
 // NewMemoryQueueManager 创建新的内存队列管理器
 func NewMemoryQueueManager() interfaces.QueueManager {
 	return &MemoryQueueManager{
-		requests: make(map[string]*models.QueuedRequest),
-		queue:    make([]*models.QueuedRequest, 0),
+		requests: make(map[string]*models.QueuedPurchaseRequest),
+		logger:   logrus.New(),
 	}
 }
 
-// EnqueueRequest 将请求加入队列
-func (m *MemoryQueueManager) EnqueueRequest(ctx context.Context, req *models.AgentRequest) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// EnqueuePurchaseRequest 将采购请求加入队列
+func (m *MemoryQueueManager) EnqueuePurchaseRequest(ctx context.Context, req *models.PurchaseRequest) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
-	queuedReq := &models.QueuedRequest{
-		AgentRequest: req,
-		Status:       models.StatusPending,
-		RetryCount:   0,
-		UpdatedAt:    time.Now(),
+	// 检查请求是否已存在
+	if _, exists := m.requests[req.RequestID]; exists {
+		return errors.New("request already exists in queue")
 	}
 
-	m.requests[req.ID] = queuedReq
-	m.queue = append(m.queue, queuedReq)
-	
-	// 按优先级排序（高优先级在前）
-	sort.Slice(m.queue, func(i, j int) bool {
-		if m.queue[i].Priority == m.queue[j].Priority {
-			return m.queue[i].CreatedAt.Before(m.queue[j].CreatedAt)
-		}
-		return m.queue[i].Priority > m.queue[j].Priority
-	})
+	// 创建队列请求
+	queuedReq := &models.QueuedPurchaseRequest{
+		PurchaseRequest: req,
+		QueuePosition:   len(m.requests) + 1,
+		EnqueuedAt:      time.Now(),
+	}
+
+	// 设置状态为处理中
+	queuedReq.Status = models.PurchaseStatusProcessing
+
+	m.requests[req.RequestID] = queuedReq
+
+	m.logger.WithFields(logrus.Fields{
+		"request_id": req.RequestID,
+		"priority":   req.Priority,
+		"position":   queuedReq.QueuePosition,
+	}).Info("Purchase request enqueued")
 
 	return nil
 }
 
-// DequeueRequest 从队列中取出请求
-func (m *MemoryQueueManager) DequeueRequest(ctx context.Context) (*models.QueuedRequest, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// DequeuePurchaseRequest 从队列中取出采购请求（按优先级）
+func (m *MemoryQueueManager) DequeuePurchaseRequest(ctx context.Context) (*models.QueuedPurchaseRequest, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
-	// 找到第一个待处理的请求
-	for i, req := range m.queue {
-		if req.Status == models.StatusPending {
-			req.Status = models.StatusProcessing
-			req.UpdatedAt = time.Now()
-			
-			// 从队列中移除
-			m.queue = append(m.queue[:i], m.queue[i+1:]...)
-			return req, nil
+	if len(m.requests) == 0 {
+		return nil, errors.New("queue is empty")
+	}
+
+	// 按优先级排序
+	var requests []*models.QueuedPurchaseRequest
+	for _, req := range m.requests {
+		if req.Status == models.PurchaseStatusProcessing {
+			requests = append(requests, req)
 		}
 	}
 
-	return nil, fmt.Errorf("no pending requests in queue")
+	if len(requests) == 0 {
+		return nil, errors.New("no processing requests available")
+	}
+
+	// 按优先级排序（优先级高的先处理）
+	sort.Slice(requests, func(i, j int) bool {
+		if requests[i].Priority != requests[j].Priority {
+			return requests[i].Priority > requests[j].Priority
+		}
+		// 优先级相同时，按入队时间排序
+		return requests[i].EnqueuedAt.Before(requests[j].EnqueuedAt)
+	})
+
+	// 取出第一个请求
+	req := requests[0]
+	delete(m.requests, req.RequestID)
+
+	// 重新计算队列位置
+	m.recalculatePositions()
+
+	m.logger.WithFields(logrus.Fields{
+		"request_id": req.RequestID,
+		"priority":   req.Priority,
+	}).Info("Purchase request dequeued")
+
+	return req, nil
 }
 
-// UpdateRequestStatus 更新请求状态
-func (m *MemoryQueueManager) UpdateRequestStatus(ctx context.Context, requestID string, status models.RequestStatus, errorMsg string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// UpdatePurchaseRequestStatus 更新采购请求状态
+func (m *MemoryQueueManager) UpdatePurchaseRequestStatus(ctx context.Context, requestID string, status models.PurchaseRequestStatus, errorMsg string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	req, exists := m.requests[requestID]
 	if !exists {
-		return fmt.Errorf("request not found: %s", requestID)
+		return errors.New("request not found in queue")
 	}
 
 	req.Status = status
-	req.UpdatedAt = time.Now()
 	req.ErrorMsg = errorMsg
+	req.UpdatedAt = time.Now()
 
-	if status == models.StatusFailed {
-		req.RetryCount++
+	if status == models.PurchaseStatusCompleted || status == models.PurchaseStatusFailed {
+		req.ProcessedAt = &time.Time{}
+		*req.ProcessedAt = time.Now()
 	}
+
+	m.logger.WithFields(logrus.Fields{
+		"request_id": requestID,
+		"status":     status,
+		"error_msg":  errorMsg,
+	}).Info("Purchase request status updated")
 
 	return nil
 }
 
-// GetRequestStatus 获取请求状态
-func (m *MemoryQueueManager) GetRequestStatus(ctx context.Context, requestID string) (*models.QueuedRequest, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+// GetPurchaseRequestStatus 获取采购请求状态
+func (m *MemoryQueueManager) GetPurchaseRequestStatus(ctx context.Context, requestID string) (*models.QueuedPurchaseRequest, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 
 	req, exists := m.requests[requestID]
 	if !exists {
-		return nil, fmt.Errorf("request not found: %s", requestID)
+		return nil, errors.New("request not found in queue")
 	}
 
-	// 返回副本以避免并发修改
-	result := *req
-	return &result, nil
+	return req, nil
 }
 
 // GetPendingCount 获取待处理请求数量
 func (m *MemoryQueueManager) GetPendingCount(ctx context.Context) (int, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 
 	count := 0
-	for _, req := range m.queue {
-		if req.Status == models.StatusPending {
+	for _, req := range m.requests {
+		if req.Status == models.PurchaseStatusProcessing {
 			count++
 		}
 	}
@@ -122,40 +159,72 @@ func (m *MemoryQueueManager) GetPendingCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// ListRequests 列出请求
-func (m *MemoryQueueManager) ListRequests(ctx context.Context, status models.RequestStatus, limit, offset int) ([]*models.QueuedRequest, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+// ListPurchaseRequests 列出采购请求（支持分页和过滤）
+func (m *MemoryQueueManager) ListPurchaseRequests(ctx context.Context, status string, limit, offset int) ([]*models.QueuedPurchaseRequest, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 
-	var filtered []*models.QueuedRequest
+	var requests []*models.QueuedPurchaseRequest
 	for _, req := range m.requests {
-		if status == "" || req.Status == status {
-			filtered = append(filtered, req)
+		// 如果状态为空字符串，返回所有请求；否则只返回匹配状态的请求
+		if status == "" || req.Status == models.PurchaseRequestStatus(status) {
+			requests = append(requests, req)
 		}
 	}
 
-	// 按创建时间排序
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	// 按优先级和入队时间排序
+	sort.Slice(requests, func(i, j int) bool {
+		if requests[i].Priority != requests[j].Priority {
+			return requests[i].Priority > requests[j].Priority
+		}
+		return requests[i].EnqueuedAt.Before(requests[j].EnqueuedAt)
 	})
 
 	// 分页
 	start := offset
-	if start > len(filtered) {
-		start = len(filtered)
-	}
-
 	end := start + limit
-	if end > len(filtered) {
-		end = len(filtered)
+	if start >= len(requests) {
+		return []*models.QueuedPurchaseRequest{}, nil
+	}
+	if end > len(requests) {
+		end = len(requests)
 	}
 
-	result := make([]*models.QueuedRequest, end-start)
-	for i := start; i < end; i++ {
-		// 返回副本
-		req := *filtered[i]
-		result[i-start] = &req
+	return requests[start:end], nil
+}
+
+// DeletePurchaseRequest 删除队列中的采购请求
+func (m *MemoryQueueManager) DeletePurchaseRequest(ctx context.Context, requestID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if _, exists := m.requests[requestID]; !exists {
+		return errors.New("request not found in queue")
 	}
 
-	return result, nil
+	delete(m.requests, requestID)
+
+	// 重新计算队列位置
+	m.recalculatePositions()
+
+	m.logger.WithField("request_id", requestID).Info("Purchase request deleted from queue")
+
+	return nil
+}
+
+// ClearAll 清空所有采购请求
+func (m *MemoryQueueManager) ClearAll(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.requests = make(map[string]*models.QueuedPurchaseRequest)
+	return nil
+}
+
+// recalculatePositions 重新计算队列位置
+func (m *MemoryQueueManager) recalculatePositions() {
+	position := 1
+	for _, req := range m.requests {
+		req.QueuePosition = position
+		position++
+	}
 }

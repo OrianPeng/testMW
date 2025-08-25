@@ -1,0 +1,158 @@
+{
+  "basic_request": {
+    "description": "基本请求 - 包含所有必需字段",
+    "request": {
+      "id": "req-001",
+      "agent_id": "agent-001",
+      "data": {
+        "action": "process_document",
+        "params": {
+          "file_path": "/path/to/document.pdf",
+          "output_format": "txt"
+        }
+      },
+      "priority": 5,
+      "callback": "http://ai-agent.example.com/callback"
+    }
+  },
+  "high_priority_request": {
+    "description": "高优先级请求",
+    "request": {
+      "id": "req-high-001",
+      "agent_id": "agent-002",
+      "data": {
+        "action": "urgent_task",
+        "params": {
+          "task_type": "emergency",
+          "timeout": 30
+        }
+      },
+      "priority": 10,
+      "callback": "http://ai-agent.example.com/urgent-callback"
+    }
+  },
+  "low_priority_request": {
+    "description": "低优先级请求",
+    "request": {
+      "id": "req-low-001",
+      "agent_id": "agent-003",
+      "data": {
+        "action": "background_task",
+        "params": {
+          "task_type": "maintenance",
+          "schedule": "night"
+        }
+      },
+      "priority": 1,
+      "callback": "http://ai-agent.example.com/background-callback"
+    }
+  },
+  "complex_data_request": {
+    "description": "复杂数据结构请求",
+    "request": {
+      "id": "req-complex-001",
+      "agent_id": "agent-004",
+      "data": {
+        "action": "data_analysis",
+        "params": {
+          "datasets": [
+            {
+              "name": "sales_data",
+              "source": "database",
+              "filters": {
+                "date_range": {
+                  "start": "2024-01-01",
+                  "end": "2024-12-31"
+                },
+                "categories": ["electronics", "clothing"]
+              }
+            }
+          ],
+          "analysis_type": "trend_analysis",
+          "output_options": {
+            "charts": ["line", "bar", "pie"],
+            "format": "pdf",
+            "include_summary": true
+          }
+        }
+      },
+      "priority": 7,
+      "callback": "http://ai-agent.example.com/analysis-callback"
+    }
+  },
+  "minimal_request": {
+    "description": "最小化请求 - 只包含必需字段",
+    "request": {
+      "id": "req-min-001",
+      "agent_id": "agent-005",
+      "data": {
+        "action": "simple_task"
+      }
+    }
+  },
+  "no_callback_request": {
+    "description": "无回调URL的请求",
+    "request": {
+      "id": "req-nocb-001",
+      "agent_id": "agent-006",
+      "data": {
+        "action": "silent_task",
+        "params": {
+          "mode": "silent"
+        }
+      },
+      "priority": 3
+    }
+  },
+  "empty_data_request": {
+    "description": "空数据请求",
+    "request": {
+      "id": "req-empty-001",
+      "agent_id": "agent-007",
+      "data": {}
+    }
+  },
+  "max_priority_request": {
+    "description": "最大优先级请求",
+    "request": {
+      "id": "req-max-001",
+      "agent_id": "agent-008",
+      "data": {
+        "action": "critical_task",
+        "params": {
+          "critical_level": "maximum"
+        }
+      },
+      "priority": 999999
+    }
+  },
+  "long_id_request": {
+    "description": "长ID请求",
+    "request": {
+      "id": "very-long-request-id-that-exceeds-normal-length-limits-and-tests-boundary-conditions-for-request-identification-and-processing-capabilities-of-the-system-under-test",
+      "agent_id": "agent-009",
+      "data": {
+        "action": "long_id_test"
+      },
+      "priority": 1
+    }
+  },
+  "special_characters_request": {
+    "description": "包含特殊字符的请求",
+    "request": {
+      "id": "req-special-001",
+      "agent_id": "agent-010",
+      "data": {
+        "action": "special_chars_test",
+        "params": {
+          "text": "Hello 世界! @#$%^&*()_+-=[]{}|;':\",./<>?",
+          "unicode": "🎉🚀💻📊🔍",
+          "html": "<script>alert('test')</script>",
+          "sql": "SELECT * FROM users WHERE id = 1; DROP TABLE users;"
+        }
+      },
+      "priority": 5,
+      "callback": "https://example.com/callback?param=value&test=123"
+    }
+  }
+} 

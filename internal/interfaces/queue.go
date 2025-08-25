@@ -7,42 +7,48 @@ import (
 
 // QueueManager 队列管理器接口
 type QueueManager interface {
-	// EnqueueRequest 将请求加入队列
-	EnqueueRequest(ctx context.Context, req *models.AgentRequest) error
-	
-	// DequeueRequest 从队列中取出请求（按优先级）
-	DequeueRequest(ctx context.Context) (*models.QueuedRequest, error)
-	
-	// UpdateRequestStatus 更新请求状态
-	UpdateRequestStatus(ctx context.Context, requestID string, status models.RequestStatus, errorMsg string) error
-	
-	// GetRequestStatus 获取请求状态
-	GetRequestStatus(ctx context.Context, requestID string) (*models.QueuedRequest, error)
-	
+	// EnqueuePurchaseRequest 将采购请求加入队列
+	EnqueuePurchaseRequest(ctx context.Context, req *models.PurchaseRequest) error
+
+	// DequeuePurchaseRequest 从队列中取出采购请求（按优先级）
+	DequeuePurchaseRequest(ctx context.Context) (*models.QueuedPurchaseRequest, error)
+
+	// UpdatePurchaseRequestStatus 更新采购请求状态
+	UpdatePurchaseRequestStatus(ctx context.Context, requestID string, status models.PurchaseRequestStatus, errorMsg string) error
+
+	// GetPurchaseRequestStatus 获取采购请求状态
+	GetPurchaseRequestStatus(ctx context.Context, requestID string) (*models.QueuedPurchaseRequest, error)
+
 	// GetPendingCount 获取待处理请求数量
 	GetPendingCount(ctx context.Context) (int, error)
-	
-	// ListRequests 列出请求（支持分页和过滤）
-	ListRequests(ctx context.Context, status models.RequestStatus, limit, offset int) ([]*models.QueuedRequest, error)
+
+	// ListPurchaseRequests 列出采购请求（支持分页和过滤）
+	ListPurchaseRequests(ctx context.Context, status string, limit, offset int) ([]*models.QueuedPurchaseRequest, error)
+
+	// DeletePurchaseRequest 删除队列中的采购请求
+	DeletePurchaseRequest(ctx context.Context, requestID string) error
+
+	// ClearAll 清空所有采购请求
+	ClearAll(ctx context.Context) error
 }
 
 // RPAClient RPA 系统客户端接口
 type RPAClient interface {
-	// SendRequest 发送请求到 RPA 系统
-	SendRequest(ctx context.Context, req *models.RPARequest) (*models.RPAResponse, error)
-	
+	// SendPurchaseRequest 发送采购请求到 RPA 系统
+	SendPurchaseRequest(ctx context.Context, req *models.RPARequest) (*models.RPAResponse, error)
+
 	// CheckStatus 检查 RPA 系统状态
 	CheckStatus(ctx context.Context) (*models.RPAStatus, error)
-	
+
 	// IsAvailable 检查 RPA 系统是否可用
 	IsAvailable(ctx context.Context) (bool, error)
 }
 
 // NotificationService 通知服务接口
 type NotificationService interface {
-	// SendCallback 发送回调通知
-	SendCallback(ctx context.Context, callbackURL string, response *models.AgentResponse) error
-	
-	// NotifyCompletion 通知请求完成
-	NotifyCompletion(ctx context.Context, req *models.QueuedRequest, result *models.RPAResponse) error
+	// SendPurchaseRequestCallback 发送采购请求回调通知
+	SendPurchaseRequestCallback(ctx context.Context, callbackURL string, response *models.PurchaseRequestCallbackResponse) error
+
+	// NotifyPurchaseRequestCompletion 通知采购请求完成
+	NotifyPurchaseRequestCompletion(ctx context.Context, req *models.QueuedPurchaseRequest, result *models.RPAResponse) error
 }

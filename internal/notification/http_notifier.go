@@ -13,13 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// HTTPNotifier HTTP 通知服务
+// HTTPNotifier HTTP通知服务
 type HTTPNotifier struct {
 	httpClient *http.Client
 	logger     *logrus.Logger
 }
 
-// NewHTTPNotifier 创建新的 HTTP 通知服务
+// NewHTTPNotifier 创建新的HTTP通知服务
 func NewHTTPNotifier(timeout time.Duration, logger *logrus.Logger) interfaces.NotificationService {
 	return &HTTPNotifier{
 		httpClient: &http.Client{
@@ -29,71 +29,49 @@ func NewHTTPNotifier(timeout time.Duration, logger *logrus.Logger) interfaces.No
 	}
 }
 
-// SendCallback 发送回调通知
-func (n *HTTPNotifier) SendCallback(ctx context.Context, callbackURL string, response *models.AgentResponse) error {
-	if callbackURL == "" {
-		return nil // 没有回调 URL，跳过通知
-	}
-
-	n.logger.WithFields(logrus.Fields{
-		"request_id":   response.RequestID,
-		"callback_url": callbackURL,
-		"status":       response.Status,
-	}).Info("Sending callback notification")
-
+// SendPurchaseRequestCallback 发送采购请求回调通知
+func (n *HTTPNotifier) SendPurchaseRequestCallback(ctx context.Context, callbackURL string, response *models.PurchaseRequestCallbackResponse) error {
 	// 序列化响应
-	reqBody, err := json.Marshal(response)
+	responseBody, err := json.Marshal(response)
 	if err != nil {
 		return fmt.Errorf("failed to marshal callback response: %w", err)
 	}
 
-	// 创建 HTTP 请求
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", callbackURL, bytes.NewBuffer(reqBody))
+	// 创建HTTP请求
+	req, err := http.NewRequestWithContext(ctx, "POST", callbackURL, bytes.NewBuffer(responseBody))
 	if err != nil {
 		return fmt.Errorf("failed to create callback request: %w", err)
 	}
 
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Callback-Type", "rpa-middleware")
-	httpReq.Header.Set("X-Request-ID", response.RequestID)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Callback-Type", "purchase-request")
+	req.Header.Set("X-Request-ID", response.RequestID)
 
 	// 发送请求
-	resp, err := n.httpClient.Do(httpReq)
+	resp, err := n.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send callback: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// 检查响应状态
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("callback failed with status %d", resp.StatusCode)
 	}
 
 	n.logger.WithFields(logrus.Fields{
 		"request_id":   response.RequestID,
+		"status":       response.Status,
 		"callback_url": callbackURL,
-	}).Info("Callback notification sent successfully")
+		"http_status":  resp.StatusCode,
+	}).Info("Purchase request callback sent successfully")
 
 	return nil
 }
 
-// NotifyCompletion 通知请求完成
-func (n *HTTPNotifier) NotifyCompletion(ctx context.Context, req *models.QueuedRequest, result *models.RPAResponse) error {
-	// 构建响应
-	response := &models.AgentResponse{
-		RequestID: req.ID,
-		Status:    req.Status,
-		Message:   "Request processed successfully",
-	}
-
-	if result != nil {
-		if result.Success {
-			response.Data = result.Data
-		} else {
-			response.Status = models.StatusFailed
-			response.Message = result.Error
-		}
-	}
-
-	// 发送回调通知
-	return n.SendCallback(ctx, req.Callback, response)
+// NotifyPurchaseRequestCompletion 通知采购请求完成
+func (n *HTTPNotifier) NotifyPurchaseRequestCompletion(ctx context.Context, req *models.QueuedPurchaseRequest, result *models.RPAResponse) error {
+	// 由于已移除callback字段，直接返回
+	n.logger.WithField("request_id", req.RequestID).Debug("Callback functionality removed, skipping notification")
+	return nil
 }
