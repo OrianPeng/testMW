@@ -99,14 +99,40 @@ func (r *PurchaseRequestRepository) GetByID(ctx context.Context, id int64) (*mod
 	`
 
 	var req models.PurchaseRequest
+	var errorMsg, comments sql.NullString
+	var approverID, approverName, rejectionReason sql.NullString
+	var approvedAt, processedAt sql.NullTime
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&req.ID, &req.RequestID, &req.DocType, &req.Plant, &req.Quantity, &req.UnitPrice, &req.Material,
 		&req.DeliveryDate, &req.VendorCode, &req.ShortText, &req.MaterialGroup, &req.UnitType,
 		&req.Requester, &req.PurchaseOrganization, &req.Currency, &req.TotalAmount,
-		&req.Priority, &req.Status, &req.Urgency, &req.ApproverID, &req.ApproverName, &req.ApprovedAt,
-		&req.RejectionReason, &req.Comments, &req.RetryCount, &req.ErrorMsg, &req.ProcessedAt, &req.CreatedAt, &req.UpdatedAt,
+		&req.Priority, &req.Status, &req.Urgency, &approverID, &approverName, &approvedAt,
+		&rejectionReason, &comments, &req.RetryCount, &errorMsg, &processedAt, &req.CreatedAt, &req.UpdatedAt,
 	)
+
+	// 处理NULL值
+	if approverID.Valid {
+		req.ApproverID = &approverID.String
+	}
+	if approverName.Valid {
+		req.ApproverName = &approverName.String
+	}
+	if approvedAt.Valid {
+		req.ApprovedAt = &approvedAt.Time
+	}
+	if rejectionReason.Valid {
+		req.RejectionReason = &rejectionReason.String
+	}
+	if comments.Valid {
+		req.Comments = comments.String
+	}
+	if errorMsg.Valid {
+		req.ErrorMsg = errorMsg.String
+	}
+	if processedAt.Valid {
+		req.ProcessedAt = &processedAt.Time
+	}
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -131,14 +157,40 @@ func (r *PurchaseRequestRepository) GetByRequestID(ctx context.Context, requestI
 	`
 
 	var req models.PurchaseRequest
+	var errorMsg, comments sql.NullString
+	var approverID, approverName, rejectionReason sql.NullString
+	var approvedAt, processedAt sql.NullTime
 
 	err := r.db.QueryRowContext(ctx, query, requestID).Scan(
 		&req.ID, &req.RequestID, &req.DocType, &req.Plant, &req.Quantity, &req.UnitPrice, &req.Material,
 		&req.DeliveryDate, &req.VendorCode, &req.ShortText, &req.MaterialGroup, &req.UnitType,
 		&req.Requester, &req.PurchaseOrganization, &req.Currency, &req.TotalAmount,
-		&req.Priority, &req.Status, &req.Urgency, &req.ApproverID, &req.ApproverName, &req.ApprovedAt,
-		&req.RejectionReason, &req.Comments, &req.RetryCount, &req.ErrorMsg, &req.ProcessedAt, &req.CreatedAt, &req.UpdatedAt,
+		&req.Priority, &req.Status, &req.Urgency, &approverID, &approverName, &approvedAt,
+		&rejectionReason, &comments, &req.RetryCount, &errorMsg, &processedAt, &req.CreatedAt, &req.UpdatedAt,
 	)
+
+	// 处理NULL值
+	if approverID.Valid {
+		req.ApproverID = &approverID.String
+	}
+	if approverName.Valid {
+		req.ApproverName = &approverName.String
+	}
+	if approvedAt.Valid {
+		req.ApprovedAt = &approvedAt.Time
+	}
+	if rejectionReason.Valid {
+		req.RejectionReason = &rejectionReason.String
+	}
+	if comments.Valid {
+		req.Comments = comments.String
+	}
+	if errorMsg.Valid {
+		req.ErrorMsg = errorMsg.String
+	}
+	if processedAt.Valid {
+		req.ProcessedAt = &processedAt.Time
+	}
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -264,17 +316,43 @@ func (r *PurchaseRequestRepository) List(ctx context.Context, query *models.Purc
 	var requests []*models.PurchaseRequest
 	for rows.Next() {
 		var req models.PurchaseRequest
+		var errorMsg, comments sql.NullString
+		var approverID, approverName, rejectionReason sql.NullString
+		var approvedAt, processedAt sql.NullTime
 
 		err := rows.Scan(
 			&req.ID, &req.RequestID, &req.DocType, &req.Plant, &req.Quantity, &req.UnitPrice, &req.Material,
 			&req.DeliveryDate, &req.VendorCode, &req.ShortText, &req.MaterialGroup, &req.UnitType,
 			&req.Requester, &req.PurchaseOrganization, &req.Currency, &req.TotalAmount,
-			&req.Priority, &req.Status, &req.Urgency, &req.ApproverID, &req.ApproverName, &req.ApprovedAt,
-			&req.RejectionReason, &req.Comments, &req.RetryCount, &req.ErrorMsg, &req.ProcessedAt, &req.CreatedAt, &req.UpdatedAt,
+			&req.Priority, &req.Status, &req.Urgency, &approverID, &approverName, &approvedAt,
+			&rejectionReason, &comments, &req.RetryCount, &errorMsg, &processedAt, &req.CreatedAt, &req.UpdatedAt,
 		)
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase request: %w", err)
+		}
+
+		// 处理NULL值
+		if approverID.Valid {
+			req.ApproverID = &approverID.String
+		}
+		if approverName.Valid {
+			req.ApproverName = &approverName.String
+		}
+		if approvedAt.Valid {
+			req.ApprovedAt = &approvedAt.Time
+		}
+		if rejectionReason.Valid {
+			req.RejectionReason = &rejectionReason.String
+		}
+		if comments.Valid {
+			req.Comments = comments.String
+		}
+		if errorMsg.Valid {
+			req.ErrorMsg = errorMsg.String
+		}
+		if processedAt.Valid {
+			req.ProcessedAt = &processedAt.Time
 		}
 
 		requests = append(requests, &req)

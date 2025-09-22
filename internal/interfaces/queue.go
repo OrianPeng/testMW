@@ -44,6 +44,21 @@ type RPAClient interface {
 	IsAvailable(ctx context.Context) (bool, error)
 }
 
+// UiPathClient UiPath RPA 系统客户端接口
+type UiPathClient interface {
+	// AddQueueItem 添加项目到UiPath队列
+	AddQueueItem(ctx context.Context, req *models.UiPathAddQueueItemRequest) (*models.UiPathAddQueueItemResponse, error)
+
+	// CheckUiPathStatus 检查UiPath系统状态
+	CheckUiPathStatus(ctx context.Context) (*models.UiPathStatusResponse, error)
+
+	// IsUiPathAvailable 检查UiPath系统是否可用
+	IsUiPathAvailable(ctx context.Context) (bool, error)
+
+	// Authenticate 获取UiPath认证令牌
+	Authenticate(ctx context.Context) (string, error)
+}
+
 // NotificationService 通知服务接口
 type NotificationService interface {
 	// SendPurchaseRequestCallback 发送采购请求回调通知

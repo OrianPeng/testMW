@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fixed AI Chatbot</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            padding: 16px 24px;
+            background: #fafafa;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            color: #262626;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #262626;
+        }
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+            border-color: #1890ff;
+        }
+        .iframe-container {
+            height: 700px;
+            position: relative;
+            background: #f5f5f5;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .loading-overlay p {
+            margin-top: 16px;
+            color: #666;
+            font-size: 16px;
+        }
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1890ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Assistant (Fixed)</h1>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="showCreatePR()">Create PR</button>
+            </div>
+        </div>
+        
+        
+        <div class="iframe-container">
+            <div id="loadingOverlay" class="loading-overlay">
+                <div class="spinner"></div>
+                <p>Loading AI Assistant...</p>
+            </div>
+            <iframe
+                id="chatIframe"
+                src="http://localhost/chatbot/HHOn2vBJZJHHTSug"
+                style="width: 100%; height: 100%; min-height: 700px"
+                frameborder="0"
+                allow="microphone"
+                onload="hideLoading()"
+                onerror="showError()"
+            ></iframe>
+        </div>
+    </div>
+
+    <script>
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            console.log('AI Assistant loaded successfully!');
+        }
+
+        function showError() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.innerHTML = '<p style="color: #ff4d4f;">Failed to load AI Assistant. Please check the chatbot URL.</p>';
+            }
+            console.error('Failed to load AI Assistant');
+        }
+
+        function sendMessage(message) {
+            try {
+                const iframe = document.getElementById('chatIframe');
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        type: 'user_message',
+                        message: message
+                    }, '*');
+                } else {
+                    alert('Quick action: ' + message);
+                }
+            } catch (error) {
+                console.error('Failed to send message to iframe:', error);
+                alert('Quick action: ' + message);
+            }
+        }
+
+        function showCreatePR() {
+            alert('Create PR functionality would open here');
+        }
+
+        // Auto-hide loading after 10 seconds as fallback
+        setTimeout(() => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.style.display = 'none';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

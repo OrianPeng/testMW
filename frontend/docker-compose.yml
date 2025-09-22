@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - order-center-network
+
+  backend:
+    image: order-center-backend:latest
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=middleware
+      - DB_USER=root
+      - DB_PASSWORD=Test123ls
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - order-center-network
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=Test123ls
+      - MYSQL_DATABASE=middleware
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - order-center-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - order-center-network
+
+networks:
+  order-center-network:
+    driver: bridge
+
+volumes:
+  mysql_data:

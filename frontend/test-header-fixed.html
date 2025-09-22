@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Header Fixed - Top Navigation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .main-layout {
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+        }
+        .layout-sider {
+            width: 240px;
+            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .logo {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        .logo-text {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .layout-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            height: 64px;
+            min-height: 64px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        .trigger {
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #64748b;
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            width: 40px;
+            border: none;
+            background: none;
+        }
+        .trigger:hover {
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            transform: scale(1.05);
+        }
+        .header-search {
+            width: 300px;
+            margin-left: 16px;
+            height: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        .header-search input {
+            height: 40px;
+            border: none;
+            box-shadow: none;
+            outline: none;
+            padding: 0 12px;
+            flex: 1;
+        }
+        .header-search button {
+            height: 40px;
+            border: none;
+            box-shadow: none;
+            background: #3b82f6;
+            color: white;
+            padding: 0 16px;
+            border-radius: 0 12px 12px 0;
+            cursor: pointer;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+        .user-info:hover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .user-name {
+            margin-left: 8px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .layout-content {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            flex: 1;
+            padding: 24px;
+            overflow: auto;
+        }
+        .test-info {
+            background: #f0f8ff;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #dbeafe;
+        }
+        .test-info h3 {
+            margin: 0 0 8px 0;
+            color: #1e40af;
+        }
+        .test-info p {
+            margin: 0;
+            color: #64748b;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .layout-sider {
+                width: 80px;
+            }
+            .header-search {
+                width: 200px;
+            }
+            .logo-text {
+                font-size: 16px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .layout-sider {
+                display: none;
+            }
+            .header-search {
+                width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <div class="layout-sider">
+            <div class="logo">
+                <span class="logo-text">Order Center</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="layout-header">
+                <div class="header-left">
+                    <button class="trigger">☰</button>
+                    <div class="header-search">
+                        <input type="text" placeholder="Search PR/PO numbers..." />
+                        <button>🔍</button>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="user-info">
+                        <div class="user-avatar">U</div>
+                        <span class="user-name">User</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="layout-content">
+                <div class="test-info">
+                    <h3>🔧 顶部导航栏修复测试</h3>
+                    <p>修复了以下问题：</p>
+                    <ul>
+                        <li>✅ 设置了固定的header高度 (64px)</li>
+                        <li>✅ 修复了trigger按钮的对齐问题</li>
+                        <li>✅ 优化了搜索框的垂直对齐</li>
+                        <li>✅ 统一了所有元素的高度 (40px)</li>
+                        <li>✅ 改进了响应式设计</li>
+                    </ul>
+                    <p>请尝试调整浏览器窗口大小来测试响应式布局。</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h2>AI Assistant 页面内容</h2>
+                    <p>这里是AI Assistant页面的内容区域。顶部导航栏现在应该正确对齐了。</p>
+                    <p>主要修复：</p>
+                    <ul>
+                        <li>Header高度固定为64px</li>
+                        <li>所有按钮和输入框高度统一为40px</li>
+                        <li>使用flexbox确保垂直居中对齐</li>
+                        <li>优化了搜索框的样式和交互</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 添加一些交互测试
+        document.querySelector('.trigger').addEventListener('click', function() {
+            alert('菜单切换按钮点击正常！');
+        });
+
+        document.querySelector('.header-search button').addEventListener('click', function() {
+            const input = document.querySelector('.header-search input');
+            if (input.value.trim()) {
+                alert('搜索: ' + input.value);
+            } else {
+                alert('请输入搜索内容');
+            }
+        });
+
+        document.querySelector('.user-info').addEventListener('click', function() {
+            alert('用户信息点击正常！');
+        });
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', function() {
+            console.log('Window resized to:', window.innerWidth + 'x' + window.innerHeight);
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const api = axios.create({
+            baseURL: 'http://localhost:8082/api/v1',
+            timeout: 10000,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        // 响应拦截器
+        api.interceptors.response.use(
+            (response) => {
+                console.log('Response:', response);
+                return response.data;
+            },
+            (error) => {
+                console.error('Error:', error);
+                return Promise.reject(error);
+            }
+        );
+
+        async function testAPIs() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test 1: Health Check
+                console.log('Testing health check...');
+                const healthResponse = await api.get('/health');
+                results.innerHTML += '<p>✅ Health Check: ' + JSON.stringify(healthResponse) + '</p>';
+            } catch (error) {
+                results.innerHTML += '<p>❌ Health Check Error: ' + error.message + '</p>';
+            }
+
+            try {
+                // Test 2: Purchase Requests
+                console.log('Testing purchase requests...');
+                const prResponse = await api.get('/purchase-requests');
+                results.innerHTML += '<p>✅ Purchase Requests: ' + JSON.stringify(prResponse).substring(0, 200) + '...</p>';
+            } catch (error) {
+                results.innerHTML += '<p>❌ Purchase Requests Error: ' + error.message + '</p>';
+            }
+
+            try {
+                // Test 3: Statistics
+                console.log('Testing statistics...');
+                const statsResponse = await api.get('/purchase-requests/statistics');
+                results.innerHTML += '<p>✅ Statistics: ' + JSON.stringify(statsResponse) + '</p>';
+            } catch (error) {
+                results.innerHTML += '<p>❌ Statistics Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Run tests when page loads
+        testAPIs();
+    </script>
+</body>
+</html>

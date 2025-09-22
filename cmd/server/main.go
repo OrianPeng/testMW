@@ -9,6 +9,7 @@ import (
 	"rpa-middleware/internal/api"
 	"rpa-middleware/internal/config"
 	"rpa-middleware/internal/database"
+	"rpa-middleware/internal/models"
 	"rpa-middleware/internal/notification"
 	"rpa-middleware/internal/processor"
 	"rpa-middleware/internal/queue"
@@ -77,8 +78,25 @@ func main() {
 	// 创建队列处理器
 	processor := processor.NewQueueProcessor(queueManager, rpaClient, notificationService, logger)
 
-	// 设置路由（包含采购请求功能和队列管理）
-	router := api.SetupRouterWithPurchaseRequests(queueManager, rpaClient, purchaseRepo, logger)
+	// 初始化其他仓库
+	poRepo := repository.NewPurchaseOrderRepository(mysqlManager.GetDB(), logger)
+	supplierRepo := repository.NewSupplierRepository(mysqlManager.GetDB(), logger)
+
+	// 初始化UiPath客户端
+	uipathConfig := &models.UiPathConfig{
+		OrchBaseURL: cfg.UiPath.OrchBaseURL,
+		TenancyName: cfg.UiPath.TenancyName,
+		Username:    cfg.UiPath.Username,
+		Password:    cfg.UiPath.Password,
+		FolderID:    cfg.UiPath.FolderID,
+		QueueName:   cfg.UiPath.QueueName,
+		VerifySSL:   cfg.UiPath.VerifySSL,
+		Timeout:     cfg.UiPath.Timeout,
+	}
+	uipathClient := rpa.NewUiPathHTTPClient(uipathConfig, logger)
+
+	// 设置完整路由（包含所有功能）
+	router := api.SetupFullRouter(queueManager, rpaClient, uipathClient, purchaseRepo, poRepo, supplierRepo, logger)
 
 	// 创建 HTTP 服务器
 	server := &http.Server{

@@ -55,6 +55,17 @@ test-full: test-build ## 全面测试（所有功能）
 	@echo "运行全面测试..."
 	@$(BUILD_DIR)/test-comprehensive
 
+test-python-api: ## 测试Python脚本执行API
+	@echo "测试Python脚本执行API..."
+	@if command -v python3 >/dev/null 2>&1; then \
+		python3 test_python_api.py; \
+	elif command -v python >/dev/null 2>&1; then \
+		python test_python_api.py; \
+	else \
+		echo "Python未安装，无法运行测试"; \
+		exit 1; \
+	fi
+
 test: ## 运行单元测试
 	$(GOTEST) -v -race ./...
 

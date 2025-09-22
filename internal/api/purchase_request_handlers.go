@@ -77,8 +77,14 @@ func (h *PurchaseRequestHandler) CreatePurchaseRequest(c *gin.Context) {
 	response := h.convertToResponse(purchaseReq)
 
 	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"data": gin.H{
+			"id":         response.ID,
+			"request_id": response.RequestID,
+			"status":     response.Status,
+			"created_at": response.CreatedAt,
+		},
 		"message": "Purchase request created successfully",
-		"data":    response,
 	})
 }
 
@@ -104,7 +110,8 @@ func (h *PurchaseRequestHandler) GetPurchaseRequest(c *gin.Context) {
 
 	response := h.convertToResponse(purchaseReq)
 	c.JSON(http.StatusOK, gin.H{
-		"data": response,
+		"success": true,
+		"data":    response,
 	})
 }
 
@@ -119,13 +126,34 @@ func (h *PurchaseRequestHandler) ListPurchaseRequests(c *gin.Context) {
 			query.Page = page
 		}
 	}
-	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
-		if pageSize, err := strconv.Atoi(pageSizeStr); err == nil {
-			query.PageSize = pageSize
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil {
+			query.PageSize = limit
 		}
 	}
 
 	// 过滤参数
+	if requestID := c.Query("request_id"); requestID != "" {
+		// 如果指定了request_id，直接查询单个记录
+		pr, err := h.repo.GetByRequestID(c.Request.Context(), requestID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "NOT_FOUND",
+					"message": "Purchase request not found",
+				},
+			})
+			return
+		}
+		response := h.convertToResponse(pr)
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    response,
+		})
+		return
+	}
+
 	if status := c.Query("status"); status != "" {
 		query.Status = (*models.PurchaseRequestStatus)(&status)
 	}
@@ -175,14 +203,30 @@ func (h *PurchaseRequestHandler) ListPurchaseRequests(c *gin.Context) {
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to list purchase requests")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to list purchase requests",
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to list purchase requests",
+			},
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": result,
-	})
+	// 转换为API文档格式
+	apiResponse := gin.H{
+		"success": true,
+		"data": gin.H{
+			"items": result.Requests,
+			"pagination": gin.H{
+				"current":   result.Page,
+				"page_size": result.PageSize,
+				"total":     result.Total,
+				"pages":     int((result.Total + int64(result.PageSize) - 1) / int64(result.PageSize)),
+			},
+		},
+	}
+
+	c.JSON(http.StatusOK, apiResponse)
 }
 
 // UpdatePurchaseRequest 更新采购请求
@@ -253,8 +297,12 @@ func (h *PurchaseRequestHandler) UpdatePurchaseRequest(c *gin.Context) {
 
 	response := h.convertToResponse(purchaseReq)
 	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"id":         response.ID,
+			"updated_at": response.UpdatedAt,
+		},
 		"message": "Purchase request updated successfully",
-		"data":    response,
 	})
 }
 
@@ -278,7 +326,25 @@ func (h *PurchaseRequestHandler) DeletePurchaseRequest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
+		"success": true,
 		"message": "Purchase request deleted successfully",
+	})
+}
+
+// GetPRStatistics 获取采购请求统计
+func (h *PurchaseRequestHandler) GetPRStatistics(c *gin.Context) {
+	// 模拟统计数据
+	stats := map[string]int{
+		"pending":    5,
+		"processing": 3,
+		"completed":  12,
+		"failed":     1,
+		"total":      21,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
 	})
 }
 

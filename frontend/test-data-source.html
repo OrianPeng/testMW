@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Source Test</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Frontend Data Source Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const api = axios.create({
+            baseURL: '/api/v1',
+            timeout: 10000,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        // 响应拦截器
+        api.interceptors.response.use(
+            (response) => {
+                console.log('Response:', response);
+                return response.data;
+            },
+            (error) => {
+                console.error('Error:', error);
+                return Promise.reject(error);
+            }
+        );
+
+        async function testDataSources() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test 1: Purchase Requests
+                console.log('Testing purchase requests...');
+                const prResponse = await api.get('/purchase-requests');
+                results.innerHTML += '<h2>✅ Purchase Requests Data</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(prResponse, null, 2).substring(0, 500) + '...</pre>';
+            } catch (error) {
+                results.innerHTML += '<h2>❌ Purchase Requests Error</h2>';
+                results.innerHTML += '<p>' + error.message + '</p>';
+            }
+
+            try {
+                // Test 2: Purchase Orders
+                console.log('Testing purchase orders...');
+                const poResponse = await api.get('/purchase-orders');
+                results.innerHTML += '<h2>✅ Purchase Orders Data</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(poResponse, null, 2).substring(0, 500) + '...</pre>';
+            } catch (error) {
+                results.innerHTML += '<h2>❌ Purchase Orders Error</h2>';
+                results.innerHTML += '<p>' + error.message + '</p>';
+            }
+
+            try {
+                // Test 3: Suppliers
+                console.log('Testing suppliers...');
+                const supplierResponse = await api.get('/suppliers');
+                results.innerHTML += '<h2>✅ Suppliers Data</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(supplierResponse, null, 2).substring(0, 500) + '...</pre>';
+            } catch (error) {
+                results.innerHTML += '<h2>❌ Suppliers Error</h2>';
+                results.innerHTML += '<p>' + error.message + '</p>';
+            }
+
+            try {
+                // Test 4: Dashboard Metrics
+                console.log('Testing dashboard metrics...');
+                const dashboardResponse = await api.get('/dashboard/metrics');
+                results.innerHTML += '<h2>✅ Dashboard Metrics</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(dashboardResponse, null, 2) + '</pre>';
+            } catch (error) {
+                results.innerHTML += '<h2>❌ Dashboard Metrics Error</h2>';
+                results.innerHTML += '<p>' + error.message + '</p>';
+            }
+
+            try {
+                // Test 5: Process Overview
+                console.log('Testing process overview...');
+                const processResponse = await api.get('/process-monitor/overview');
+                results.innerHTML += '<h2>✅ Process Overview</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(processResponse, null, 2) + '</pre>';
+            } catch (error) {
+                results.innerHTML += '<h2>❌ Process Overview Error</h2>';
+                results.innerHTML += '<p>' + error.message + '</p>';
+            }
+        }
+
+        // Run tests when page loads
+        testDataSources();
+    </script>
+</body>
+</html>

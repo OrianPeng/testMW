@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Fixed - Data Retrieval</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            padding: 20px;
+            background: #f0f8ff;
+            border-bottom: 1px solid #dbeafe;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+        }
+        .header p {
+            margin: 0;
+            color: #64748b;
+        }
+        .test-section {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .test-section h3 {
+            margin: 0 0 15px 0;
+            color: #374151;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .test-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .loading {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 API修复测试 - 数据获取验证</h1>
+            <p>测试前端API调用是否能正确获取后端数据</p>
+        </div>
+
+        <div class="test-section">
+            <h3>1. 基础连接测试</h3>
+            <button class="test-button" onclick="testHealthCheck()">健康检查</button>
+            <button class="test-button" onclick="testQueueStats()">队列统计</button>
+            <div id="basic-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 采购请求API测试</h3>
+            <button class="test-button" onclick="testGetPurchaseRequests()">获取采购请求列表</button>
+            <button class="test-button" onclick="testCreatePurchaseRequest()">创建采购请求</button>
+            <button class="test-button" onclick="testPRStatistics()">采购请求统计</button>
+            <div id="pr-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 采购订单API测试</h3>
+            <button class="test-button" onclick="testGetPurchaseOrders()">获取采购订单列表</button>
+            <button class="test-button" onclick="testCreatePurchaseOrder()">创建采购订单</button>
+            <button class="test-button" onclick="testPOStatistics()">采购订单统计</button>
+            <div id="po-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 供应商API测试</h3>
+            <button class="test-button" onclick="testGetSuppliers()">获取供应商列表</button>
+            <button class="test-button" onclick="testCreateSupplier()">创建供应商</button>
+            <button class="test-button" onclick="testSupplierStatistics()">供应商统计</button>
+            <div id="supplier-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. 仪表板API测试</h3>
+            <button class="test-button" onclick="testDashboardMetrics()">仪表板指标</button>
+            <button class="test-button" onclick="testProcessOverview()">流程概览</button>
+            <button class="test-button" onclick="testAIMessage()">AI助手消息</button>
+            <div id="dashboard-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8082/api/v1';
+        
+        function showResult(elementId, content, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+
+        function setButtonLoading(button, loading = true) {
+            button.disabled = loading;
+            button.textContent = loading ? '测试中...' : button.textContent.replace('测试中...', '');
+        }
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    status: 0,
+                    error: error.message
+                };
+            }
+        }
+
+        // 基础连接测试
+        async function testHealthCheck() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/health`);
+            const content = result.success 
+                ? `✅ 健康检查成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 健康检查失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('basic-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testQueueStats() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/status`);
+            const content = result.success 
+                ? `✅ 队列统计获取成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 队列统计获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('basic-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        // 采购请求API测试
+        async function testGetPurchaseRequests() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/purchase-requests`);
+            const content = result.success 
+                ? `✅ 采购请求列表获取成功\n状态码: ${result.status}\n数据项数: ${result.data?.data?.items?.length || 0}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 采购请求列表获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('pr-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testCreatePurchaseRequest() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const testData = {
+                request_id: `TEST-PR-${Date.now()}`,
+                doc_type: "PR",
+                plant: "1000",
+                quantity: 1,
+                unit_price: 100.0,
+                material: "TEST-MATERIAL",
+                delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                vendor_code: "TEST-VENDOR",
+                requester: "TEST-USER",
+                department: "IT",
+                priority: 1,
+                urgency: "Normal",
+                comments: "API测试创建的采购请求"
+            };
+            
+            const result = await makeRequest(`${API_BASE}/purchase-requests`, {
+                method: 'POST',
+                body: JSON.stringify(testData)
+            });
+            
+            const content = result.success 
+                ? `✅ 采购请求创建成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 采购请求创建失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('pr-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testPRStatistics() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/purchase-requests/statistics`);
+            const content = result.success 
+                ? `✅ 采购请求统计获取成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 采购请求统计获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('pr-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        // 采购订单API测试
+        async function testGetPurchaseOrders() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/purchase-orders`);
+            const content = result.success 
+                ? `✅ 采购订单列表获取成功\n状态码: ${result.status}\n数据项数: ${result.data?.data?.items?.length || 0}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 采购订单列表获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('po-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testCreatePurchaseOrder() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const testData = {
+                po_number: `TEST-PO-${Date.now()}`,
+                supplier_id: "TEST-SUPPLIER",
+                supplier_name: "Test Supplier",
+                supplier_code: "TEST-SUPPLIER",
+                total_amount: 1000.0,
+                currency: "CNY",
+                delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                status: "pending",
+                description: "API测试创建的采购订单",
+                created_by: "TEST-USER"
+            };
+            
+            const result = await makeRequest(`${API_BASE}/purchase-orders`, {
+                method: 'POST',
+                body: JSON.stringify(testData)
+            });
+            
+            const content = result.success 
+                ? `✅ 采购订单创建成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 采购订单创建失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('po-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testPOStatistics() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/purchase-orders/statistics`);
+            const content = result.success 
+                ? `✅ 采购订单统计获取成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 采购订单统计获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('po-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        // 供应商API测试
+        async function testGetSuppliers() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/suppliers`);
+            const content = result.success 
+                ? `✅ 供应商列表获取成功\n状态码: ${result.status}\n数据项数: ${result.data?.data?.items?.length || 0}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 供应商列表获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('supplier-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testCreateSupplier() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const testData = {
+                name: `Test Supplier ${Date.now()}`,
+                code: `TEST-SUP-${Date.now()}`,
+                type: "External",
+                status: "active",
+                contact_person: "Test Contact",
+                email: "test@example.com",
+                phone: "123-456-7890",
+                address: "Test Address",
+                description: "API测试创建的供应商"
+            };
+            
+            const result = await makeRequest(`${API_BASE}/suppliers`, {
+                method: 'POST',
+                body: JSON.stringify(testData)
+            });
+            
+            const content = result.success 
+                ? `✅ 供应商创建成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 供应商创建失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('supplier-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testSupplierStatistics() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/suppliers/statistics`);
+            const content = result.success 
+                ? `✅ 供应商统计获取成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 供应商统计获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('supplier-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        // 仪表板API测试
+        async function testDashboardMetrics() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/dashboard/metrics`);
+            const content = result.success 
+                ? `✅ 仪表板指标获取成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 仪表板指标获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('dashboard-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testProcessOverview() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const result = await makeRequest(`${API_BASE}/process-monitor/overview`);
+            const content = result.success 
+                ? `✅ 流程概览获取成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ 流程概览获取失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('dashboard-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        async function testAIMessage() {
+            const button = event.target;
+            setButtonLoading(button, true);
+            
+            const testData = {
+                message: "Hello, this is a test message",
+                conversation_id: `conv_${Date.now()}`
+            };
+            
+            const result = await makeRequest(`${API_BASE}/ai-assistant/message`, {
+                method: 'POST',
+                body: JSON.stringify(testData)
+            });
+            
+            const content = result.success 
+                ? `✅ AI助手消息发送成功\n状态码: ${result.status}\n响应: ${JSON.stringify(result.data, null, 2)}`
+                : `❌ AI助手消息发送失败\n错误: ${result.error || '未知错误'}\n状态码: ${result.status}`;
+            
+            showResult('dashboard-result', content, result.success ? 'success' : 'error');
+            setButtonLoading(button, false);
+        }
+
+        // 页面加载时自动运行基础测试
+        window.addEventListener('load', function() {
+            console.log('API测试页面已加载，可以开始测试各个API端点');
+        });
+    </script>
+</body>
+</html>

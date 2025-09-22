@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server ServerConfig `yaml:"server"`
 	RPA    RPAConfig    `yaml:"rpa"`
+	UiPath UiPathConfig `yaml:"uipath"`
 	Queue  QueueConfig  `yaml:"queue"`
 	Redis  RedisConfig  `yaml:"redis"`
 	MySQL  MySQLConfig  `yaml:"mysql"`
@@ -26,6 +27,18 @@ type RPAConfig struct {
 	BaseURL       string        `yaml:"base_url"`
 	Timeout       time.Duration `yaml:"timeout"`
 	CheckInterval time.Duration `yaml:"check_interval"`
+}
+
+// UiPathConfig UiPath配置
+type UiPathConfig struct {
+	OrchBaseURL string        `yaml:"orch_base_url"`
+	TenancyName string        `yaml:"tenancy_name"`
+	Username    string        `yaml:"username"`
+	Password    string        `yaml:"password"`
+	FolderID    int           `yaml:"folder_id"`
+	QueueName   string        `yaml:"queue_name"`
+	VerifySSL   bool          `yaml:"verify_ssl"`
+	Timeout     time.Duration `yaml:"timeout"`
 }
 
 // QueueConfig 队列配置
@@ -78,6 +91,16 @@ func DefaultConfig() *Config {
 			BaseURL:       "http://localhost:8084",
 			Timeout:       60 * time.Second,
 			CheckInterval: 60 * time.Second,
+		},
+		UiPath: UiPathConfig{
+			OrchBaseURL: "https://fmvrpaorchp01.sg.lan",
+			TenancyName: "Default",
+			Username:    "API",
+			Password:    "Dash_Api_12345678",
+			FolderID:    31,
+			QueueName:   "CreationPR",
+			VerifySSL:   false,
+			Timeout:     60 * time.Second,
 		},
 		Queue: QueueConfig{
 			Type:          "memory",

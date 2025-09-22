@@ -8,6 +8,16 @@ rpa:
   timeout: 60s
   check_interval: 60s
 
+uipath:
+  orch_base_url: "https://fmvrpaorchp01.sg.lan"
+  tenancy_name: "Default"
+  username: "API"
+  password: "Dash_Api_12345678"
+  folder_id: 31
+  queue_name: "CreationPR"
+  verify_ssl: false
+  timeout: 60s
+
 queue:
   type: "memory"  # 队列类型: memory 或 redis
   check_interval: 5s
